@@ -1,2 +1,2 @@
 # RxBus
-A better RxBus, easy and powerful message router.
+A better RxBus, convenient and powerful message router.
