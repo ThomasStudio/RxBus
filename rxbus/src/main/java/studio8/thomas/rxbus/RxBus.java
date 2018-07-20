@@ -5,6 +5,8 @@ import android.util.Log;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.reactivex.Scheduler;
+import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Consumer;
 import io.reactivex.subjects.PublishSubject;
 
@@ -26,6 +28,7 @@ public class RxBus {
 
     private static Map<String, PublishSubject<Object>> publishes = new ConcurrentHashMap();
     private static Map<Class<?>, PublishSubject> publishesT = new ConcurrentHashMap();
+    private static Map<Consumer, Disposable> disposableMap = new ConcurrentHashMap<>();
 
     /**
      * get Publishes for event with tag
@@ -76,6 +79,8 @@ public class RxBus {
 
         if (null == consumer) return;
 
+        unSubscribe(consumer);
+
         Log.d(TAG, "subscribe: tag = " + tag);
 
         if (null == tag || tag.length() < 1) {
@@ -83,7 +88,8 @@ public class RxBus {
         }
 
         PublishSubject<Object> publish = getPublishes(tag);
-        publish.subscribe(consumer);
+        Disposable disposable = publish.subscribe(consumer);
+        disposableMap.put(consumer, disposable);
     }
 
     /**
@@ -108,10 +114,24 @@ public class RxBus {
      */
     public static <T> void subscribe(ConsumerT<T> consumer) {
         if (null == consumer) return;
-
         Log.d(TAG, "subscribe: class = " + consumer.getT());
 
-        getPublishes(consumer.getT()).subscribe(consumer);
+        unSubscribe(consumer);
+
+        Disposable disposable = getPublishes(consumer.getT()).subscribe(consumer);
+        disposableMap.put(consumer, disposable);
+    }
+
+    /**
+     * unsubscribe a consumer from PublishSubject
+     *
+     * @param consumer
+     */
+    public static void unSubscribe(Consumer consumer) {
+        if (disposableMap.containsKey(consumer)) {
+            disposableMap.get(consumer).dispose();
+            disposableMap.remove(consumer);
+        }
     }
 
     /**

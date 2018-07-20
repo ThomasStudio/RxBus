@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context=".MainActivity">
+    tools:context=".NextpageActivity">
 
     <TextView
         android:layout_width="match_parent"
@@ -108,19 +108,16 @@
             android:text="send" />
     </LinearLayout>
 
-    <TextView
-        android:layout_width="match_parent"
+    <Button
+        android:layout_width="100dp"
         android:layout_height="wrap_content"
-        android:layout_margin="10dp"
-        android:text="next page"
-        android:textAlignment="center"
-        android:textSize="18sp" />
+        android:text="UnSubscribe"
+        android:onClick="UnSubscribeAll"/>
 
     <Button
-        android:layout_width="wrap_content"
+        android:layout_width="100dp"
         android:layout_height="wrap_content"
-        android:onClick="nextPage"
-        android:text="next page" />
-
+        android:text="finish"
+        android:onClick="finishPage"/>
 
 </LinearLayout>

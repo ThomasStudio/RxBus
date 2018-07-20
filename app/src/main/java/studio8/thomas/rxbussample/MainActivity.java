@@ -1,5 +1,6 @@
 package studio8.thomas.rxbussample;
 
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -53,8 +54,8 @@ public class MainActivity extends AppCompatActivity {
         RxBus.subscribe(new ConsumerT<String>() {
             @Override
             public void accept(String s) throws Exception {
-                Log.d(TAG, "accept: " + s);
-                Toast.makeText(MainActivity.this, "receive message: " + s, Toast.LENGTH_SHORT).show();
+                Log.d(TAG, "MainActivity accept: " + s);
+                Toast.makeText(MainActivity.this, "MainActivity receive message: " + s, Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -65,5 +66,9 @@ public class MainActivity extends AppCompatActivity {
 
     public void sendString(View view) {
         RxBus.send("RxBus message");
+    }
+
+    public void nextPage(View view) {
+        this.startActivity(new Intent(this, NextpageActivity.class));
     }
 }
