@@ -24,14 +24,15 @@ Step 1. Add it in your root build.gradle at the end of repositories:
 
 
 ====== subscribe message with tag ======
+    ConsumerT consumerTAG = new ConsumerT<Object>() {
+        @Override
+        public void accept(Object o) throws Exception {
+            Toast.makeText(NextpageActivity.this, "NextpageActivity receive message: " + o.toString(), Toast.LENGTH_SHORT).show();
+        }
+    };
 
     public void subscribeTag(View view) {
-        RxBus.subscribe(TAG, new ConsumerT<Object>() {
-            @Override
-            public void accept(Object o) throws Exception {
-                Toast.makeText(MainActivity.this, "receive message: " + o.toString(), Toast.LENGTH_SHORT).show();
-            }
-        });
+        RxBus.subscribe(TAG, consumerTAG);
     }
 
 ====== send message with tag ======
@@ -48,17 +49,44 @@ Step 1. Add it in your root build.gradle at the end of repositories:
 
 ====== subscribe message without tag ======
 
+    ConsumerT consumerTString = new ConsumerT<String>() {
+        @Override
+        public void accept(String s) throws Exception {
+            Toast.makeText(NextpageActivity.this, "NextpageActivity receive message: " + s, Toast.LENGTH_SHORT).show();
+        }
+    };
+
+    ConsumerT consumerTActivity = new ConsumerT<NextpageActivity>() {
+        @Override
+        public void accept(NextpageActivity nextpageActivity) throws Exception {
+            Toast.makeText(nextpageActivity, "receive message: " + nextpageActivity.toString(), Toast.LENGTH_SHORT).show();
+        }
+    };
+
     public void subscribeActivity(View view) {
-        RxBus.subscribe(new ConsumerT<MainActivity>() {
-            @Override
-            public void accept(MainActivity mainActivity) throws Exception {
-                Toast.makeText(mainActivity, "receive message: " + mainActivity.toString(), Toast.LENGTH_SHORT).show();
-            }
-        });
+        RxBus.subscribe(consumerTActivity);
     }
+
+    public void subscribeString(View view) {
+        RxBus.subscribe(consumerTString);
+    }
+
 
 ====== send message without tag ======
 
     public void sendActivity(View view) {
         RxBus.send(MainActivity.this);
     }
+
+    public void sendString(View view) {
+        RxBus.send("RxBus message");
+    }
+
+====== unsubscribe message ======
+
+    public void UnSubscribeAll(View view) {
+        RxBus.unSubscribe(consumerTAG);
+        RxBus.unSubscribe(consumerTString);
+        RxBus.unSubscribe(consumerTActivity);
+    }
+
