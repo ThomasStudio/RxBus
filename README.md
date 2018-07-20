@@ -24,6 +24,7 @@ Step 1. Add it in your root build.gradle at the end of repositories:
 
 
 ====== subscribe message with tag ======
+
     ConsumerT consumerTAG = new ConsumerT<Object>() {
         @Override
         public void accept(Object o) throws Exception {
