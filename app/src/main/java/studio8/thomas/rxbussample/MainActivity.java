@@ -68,7 +68,11 @@ public class MainActivity extends AppCompatActivity {
         RxBus.send("RxBus message");
     }
 
-    public void nextPage(View view) {
-        this.startActivity(new Intent(this, NextpageActivity.class));
+    public void unsubscribePage(View view) {
+        this.startActivity(new Intent(this, UnsubscribeActivity.class));
+    }
+
+    public void stickyPage(View view) {
+        this.startActivity(new Intent(this, StickyActivity.class));
     }
 }

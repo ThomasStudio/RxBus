@@ -91,3 +91,49 @@ Step 1. Add it in your root build.gradle at the end of repositories:
         RxBus.unSubscribe(consumerTActivity);
     }
 
+====== subscribe sticky message with tag ======
+
+    public void subscribeStringTag(View view) {
+        RxBus.subscribeSticky(TAG, consumerTAG);
+    }
+
+====== send sticky message with tag ======
+
+    static int k = 0;
+    public void sendStringTag(View view) {
+        RxBus.sendSticky(TAG, "sticky with tag : " + k++);
+    }
+
+====== subscribe sticky message without tag ======
+
+    public void subscribeString(View view) {
+        RxBus.subscribeSticky(consumerTString);
+    }
+
+====== send sticky message without tag ======
+
+    static int i = 0;
+    public void sendString(View view) {
+        RxBus.sendSticky(new String("RxBus message : " + i++));
+    }
+
+====== the other sticky message method ======
+
+    //get sticky list by Class
+    RxBus.getStickyList(Class<?> theClass)
+
+    //Delete sticky list by Class
+    RxBus.deleteStickyList(Class<T> theClass);
+
+    //Delete one sticky by Class
+    RxBus.deleteSticky(T message);
+
+
+    //get sticky list by tag
+    RxBus.getStickyList(String tag);
+
+    //Delete sticky list by tag
+    RxBus.deleteStickyList(String tag);
+
+    //Delete sticky by tag
+    RxBus.deleteSticky(String tag, Object message);

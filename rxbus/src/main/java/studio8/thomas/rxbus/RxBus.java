@@ -2,9 +2,12 @@ package studio8.thomas.rxbus;
 
 import android.util.Log;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.reactivex.ObservableEmitter;
 import io.reactivex.Scheduler;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Consumer;
@@ -26,12 +29,20 @@ import io.reactivex.subjects.PublishSubject;
 public class RxBus {
     public static final String TAG = "RxBus";
 
-    private static Map<String, PublishSubject<Object>> publishes = new ConcurrentHashMap();
-    private static Map<Class<?>, PublishSubject> publishesT = new ConcurrentHashMap();
+    private static boolean sticky;
+
     private static Map<Consumer, Disposable> disposableMap = new ConcurrentHashMap<>();
 
+    private static Map<String, PublishSubject<Object>> publishes = new ConcurrentHashMap();
+    private static Map<Class<?>, PublishSubject> publishesT = new ConcurrentHashMap();
+
+    private static Map<String, List<Object>> stickyMessages = new ConcurrentHashMap<>();
+    private static Map<Class<?>, List<Object>> stickyMessagesT = new ConcurrentHashMap<>();
+
+//============================== get PublishSubject ==============================
+
     /**
-     * get Publishes for event with tag
+     * get Publishes for message with tag
      *
      * @param tag
      * @return
@@ -39,14 +50,16 @@ public class RxBus {
     private static PublishSubject<Object> getPublishes(String tag) {
         PublishSubject<Object> publish;
 
-        if (!publishes.containsKey(tag)) {
-            publish = PublishSubject.create();
-            publishes.put(tag, publish);
-        } else {
-            publish = publishes.get(tag);
-        }
+        synchronized (publishes) {
+            if (!publishes.containsKey(tag)) {
+                publish = PublishSubject.create();
+                publishes.put(tag, publish);
+            } else {
+                publish = publishes.get(tag);
+            }
 
-        return publish;
+            return publish;
+        }
     }
 
     /**
@@ -58,15 +71,45 @@ public class RxBus {
     private static PublishSubject getPublishes(Class<?> theClass) {
         PublishSubject publish;
 
-        if (!publishesT.containsKey(theClass)) {
-            publish = PublishSubject.create();
-            publishesT.put(theClass, publish);
-        } else {
-            publish = publishesT.get(theClass);
-        }
+        synchronized (publishesT) {
+            if (!publishesT.containsKey(theClass)) {
+                publish = PublishSubject.create();
+                publishesT.put(theClass, publish);
+            } else {
+                publish = publishesT.get(theClass);
+            }
 
-        return publish;
+            return publish;
+        }
     }
+
+    //============================== get sticky message list ==============================
+
+    public static List<Object> getStickyList(Class<?> theClass) {
+        synchronized (stickyMessagesT) {
+            if (stickyMessagesT.containsKey(theClass)) {
+                return stickyMessagesT.get(theClass);
+            } else {
+                List<Object> list = new Vector<>();
+                stickyMessagesT.put(theClass, list);
+                return list;
+            }
+        }
+    }
+
+    public static List<Object> getStickyList(String tag) {
+        synchronized (stickyMessages) {
+            if (stickyMessages.containsKey(tag)) {
+                return stickyMessages.get(tag);
+            } else {
+                List<Object> list = new Vector<>();
+                stickyMessages.put(tag, list);
+                return list;
+            }
+        }
+    }
+
+//============================== subscribe/send message with tag ==============================
 
     /**
      * specialize the tag string
@@ -89,22 +132,26 @@ public class RxBus {
 
         PublishSubject<Object> publish = getPublishes(tag);
         Disposable disposable = publish.subscribe(consumer);
-        disposableMap.put(consumer, disposable);
+        synchronized (disposableMap) {
+            disposableMap.put(consumer, disposable);
+        }
     }
 
     /**
      * specialize the tag string
      *
      * @param tag
-     * @param event
+     * @param message
      */
-    public static void send(String tag, Object event) {
+    public static void send(String tag, Object message) {
         if (null == tag || tag.length() < 1) return;
-        if (null == event) return;
+        if (null == message) return;
 
-        Log.d(TAG, "send: tag = " + tag + " event = " + event.toString());
-        getPublishes(tag).onNext(event);
+        Log.d(TAG, "send: tag = " + tag + " message = " + message.toString());
+        getPublishes(tag).onNext(message);
     }
+
+//============================== subscribe/send message ==============================
 
     /**
      * use Class as tag
@@ -119,8 +166,27 @@ public class RxBus {
         unSubscribe(consumer);
 
         Disposable disposable = getPublishes(consumer.getT()).subscribe(consumer);
-        disposableMap.put(consumer, disposable);
+        synchronized (disposableMap) {
+            disposableMap.put(consumer, disposable);
+        }
     }
+
+
+    /**
+     * send a message
+     *
+     * @param message
+     */
+    public static <T> void send(T message) {
+        if (null == message) return;
+
+        Class<?> c = message.getClass();
+        Log.d(TAG, "send: class = " + c.getName() + " message = " + message.toString());
+
+        getPublishes(c).onNext(message);
+    }
+
+//============================== unSubscribe message ==============================
 
     /**
      * unsubscribe a consumer from PublishSubject
@@ -128,24 +194,156 @@ public class RxBus {
      * @param consumer
      */
     public static void unSubscribe(Consumer consumer) {
-        if (disposableMap.containsKey(consumer)) {
-            disposableMap.get(consumer).dispose();
-            disposableMap.remove(consumer);
+        synchronized (disposableMap) {
+            if (disposableMap.containsKey(consumer)) {
+                disposableMap.get(consumer).dispose();
+                disposableMap.remove(consumer);
+            }
+        }
+    }
+
+    //============================== sticky message without tag ==============================
+    public static <T> void subscribeSticky(ConsumerT<T> consumer) {
+        Log.d(TAG, "subscribeSticky: ");
+
+        subscribe(consumer);
+
+//        send sticky message to consumer
+        List<Object> list = getStickyList(consumer.getT());
+        synchronized (list) {
+            for (Object obj : list) {
+                try {
+                    consumer.accept((T) obj);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public static <T> void sendSticky(T message) {
+        Log.d(TAG, "sendSticky: ");
+
+        addSticky(message);
+        send(message);
+    }
+
+    /**
+     * Delete sticky list by Class
+     *
+     * @param theClass
+     * @param <T>
+     * @return
+     */
+    public static <T> boolean deleteStickyList(Class<T> theClass) {
+        Log.d(TAG, "deleteStickyList: theClass = " + theClass.getName());
+
+        synchronized (stickyMessagesT) {
+            if (stickyMessagesT.containsKey(theClass)) {
+                stickyMessagesT.remove(theClass);
+                return true;
+            }
+            return false;
         }
     }
 
     /**
-     * send a event
+     * Delete one sticky by Class.
      *
-     * @param event
+     * @param message
+     * @param <T>
+     * @return if deleted, return true; if not, return false
      */
-    public static <T> void send(T event) {
-        if (null == event) return;
+    public static <T> boolean deleteSticky(T message) {
+        Log.d(TAG, "deleteStickyList: theClass = " + message.toString());
 
-        Class<?> c = event.getClass();
-        Log.d(TAG, "send: class = " + c.getName() + " event = " + event.toString());
+        synchronized (stickyMessagesT) {
+            if (stickyMessagesT.containsKey(message.getClass())) {
+                return getStickyList(message.getClass()).remove(message);
+            }
 
-        getPublishes(c).onNext(event);
+            return false;
+        }
+    }
+
+    private static void addSticky(Object message) {
+        if (null == message) {
+            Log.d(TAG, "addSticky: message is null");
+            return;
+        }
+
+        Log.d(TAG, "addSticky: message = " + message.toString());
+
+        synchronized (stickyMessagesT) {
+            if (!getStickyList(message.getClass()).contains(message))
+                getStickyList(message.getClass()).add(message);
+        }
+    }
+
+    //============================== sticky message with tag ==============================
+    public static void subscribeSticky(String tag, Consumer<Object> consumer) {
+        Log.d(TAG, "subscribeSticky");
+
+        subscribe(tag, consumer);
+
+//        send sticky message to consumer
+        List<Object> list = getStickyList(tag);
+        synchronized (list) {
+            for (Object obj : list) {
+                try {
+                    consumer.accept(obj);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public static void sendSticky(String tag, Object message) {
+        Log.d(TAG, "sendSticky: ");
+
+        addSticky(tag, message);
+        send(tag, message);
+    }
+
+    public static boolean deleteStickyList(String tag) {
+        Log.d(TAG, "deleteStickyList: tag = " + tag);
+
+        synchronized (stickyMessages) {
+            if (stickyMessages.containsKey(tag)) {
+                stickyMessages.remove(tag);
+                return true;
+            }
+            return false;
+        }
+    }
+
+    public static boolean deleteSticky(String tag, Object message) {
+        if (null == tag || null == message || tag.length() < 1) return false;
+
+        Log.d(TAG, "deleteSticky: tag=" + tag + ", message=" + message.toString());
+
+        synchronized (stickyMessages) {
+            if (stickyMessages.containsKey(tag)) {
+                return getStickyList(tag).remove(message);
+            }
+
+            return false;
+        }
+    }
+
+    private static void addSticky(String tag, Object message) {
+        if (null == message || tag == null || tag.length() < 1) {
+            Log.d(TAG, "addSticky: message is null or tag is null(empty)");
+            return;
+        }
+
+        Log.d(TAG, "addSticky: message = " + message.toString() + ", tag = " + tag);
+
+        synchronized (stickyMessages) {
+            if (!getStickyList(tag).contains(message))
+                getStickyList(tag).add(message);
+        }
     }
 
 }

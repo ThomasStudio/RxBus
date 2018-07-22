@@ -79,11 +79,18 @@
             android:text="send String" />
     </LinearLayout>
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+    </LinearLayout>
+
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="10dp"
-        android:text="subscribe / send sticky"
+        android:text="test pages"
         android:textAlignment="center"
         android:textSize="18sp" />
 
@@ -93,34 +100,18 @@
         android:orientation="horizontal">
 
         <Button
-            android:layout_width="100dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="send " />
+            android:onClick="unsubscribePage"
+            android:text="unsubscribe test" />
 
         <Button
-            android:layout_width="100dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="send" />
+            android:onClick="stickyPage"
+            android:text="sticky test" />
 
-        <Button
-            android:layout_width="100dp"
-            android:layout_height="wrap_content"
-            android:text="send" />
+
     </LinearLayout>
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="10dp"
-        android:text="next page"
-        android:textAlignment="center"
-        android:textSize="18sp" />
-
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:onClick="nextPage"
-        android:text="next page" />
-
 
 </LinearLayout>
