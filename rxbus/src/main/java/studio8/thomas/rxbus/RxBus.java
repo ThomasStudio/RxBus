@@ -28,7 +28,7 @@ import io.reactivex.subjects.PublishSubject;
  * so the consumer doesnot need to check the data in accept method.
  * <p>
  * 2018.11.12
- * use the WeakReference instead of strong reference, avoid memory leak
+ * Use the WeakReference instead of normal reference, avoid the memory leak.
  */
 public class RxBus {
     public static final String TAG = "RxBus";
