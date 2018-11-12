@@ -2,6 +2,7 @@ package studio8.thomas.rxbus;
 
 import android.util.Log;
 
+import java.lang.ref.WeakReference;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -25,13 +26,16 @@ import io.reactivex.subjects.PublishSubject;
  * pair two : it is strict. Subscribe a consumer with Class type,
  * and you can only this kind of Class to the consumer, send subclass does not accept.
  * so the consumer doesnot need to check the data in accept method.
+ * <p>
+ * 2018.11.12
+ * use the WeakReference instead of strong reference, avoid memory leak
  */
 public class RxBus {
     public static final String TAG = "RxBus";
 
     private static boolean sticky;
 
-    private static Map<Consumer, Disposable> disposableMap = new ConcurrentHashMap<>();
+    private static Map<WeakReference<Consumer>, Disposable> disposableMap = new ConcurrentHashMap<>();
 
     private static Map<String, PublishSubject<Object>> publishes = new ConcurrentHashMap();
     private static Map<Class<?>, PublishSubject> publishesT = new ConcurrentHashMap();
@@ -133,7 +137,7 @@ public class RxBus {
         PublishSubject<Object> publish = getPublishes(tag);
         Disposable disposable = publish.subscribe(consumer);
         synchronized (disposableMap) {
-            disposableMap.put(consumer, disposable);
+            disposableMap.put(new WeakReference<Consumer>(consumer), disposable);
         }
     }
 
@@ -167,7 +171,7 @@ public class RxBus {
 
         Disposable disposable = getPublishes(consumer.getT()).subscribe(consumer);
         synchronized (disposableMap) {
-            disposableMap.put(consumer, disposable);
+            disposableMap.put(new WeakReference<Consumer>(consumer), disposable);
         }
     }
 
@@ -194,10 +198,15 @@ public class RxBus {
      * @param consumer
      */
     public static void unSubscribe(Consumer consumer) {
+        Log.d(TAG, "unSubscribe: consumer=" + consumer.toString());
+        if (null == consumer) return;
+
         synchronized (disposableMap) {
-            if (disposableMap.containsKey(consumer)) {
-                disposableMap.get(consumer).dispose();
-                disposableMap.remove(consumer);
+            for (WeakReference<Consumer> weak : disposableMap.keySet()) {
+                if (weak.get() == consumer) {
+                    disposableMap.get(weak).dispose();
+                    disposableMap.remove(weak);
+                }
             }
         }
     }
